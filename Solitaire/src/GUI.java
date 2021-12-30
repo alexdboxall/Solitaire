@@ -2,7 +2,6 @@
 import java.awt.*;
 import java.awt.image.*;
 import java.io.File;
-import java.io.IOException;
 import java.awt.event.*;
 import java.util.Iterator;
 
@@ -391,15 +390,35 @@ public class GUI extends JPanel {
 		}
 	}
 	
-	protected void paintStatusBar(Graphics g) {
-		String statusString = String.format("Time: %d   Score: %d", game.getTime(), game.getScore());
-		
+	protected void paintStatusBar(Graphics g) {		
 		g.setColor(new Color(0xFFFFFF));
 		g.fillRect(0, WINDOW_HEIGHT - 27, WINDOW_WIDTH, 27);
-		
+
 		g.setColor(new Color(0x000000));
 		g.setFont(new Font("Arial", Font.BOLD, 14));
-		g.drawString(statusString, 10, WINDOW_HEIGHT - 9);
+		
+		String timeString = String.format("Time: %d", game.getTime());
+		int timeWidth = g.getFontMetrics().stringWidth(timeString);
+		g.drawString(timeString, WINDOW_WIDTH - 9 - timeWidth, WINDOW_HEIGHT - 9);
+		
+		if (game.scoringMode != Solitaire.ScoringMode.None) {
+			String scoreString = "< REPORT THIS BUG >";
+			if (game.scoringMode == Solitaire.ScoringMode.Standard) {
+				scoreString = String.format("%d", game.getScore());
+			} else if (game.scoringMode == Solitaire.ScoringMode.Vegas) {
+				int score = game.getScore();
+				scoreString = score < 0 ? String.format("-$%d", -score) : String.format("$%d", score);
+			}
+			
+			int labelWidth = g.getFontMetrics().stringWidth("Score: ");
+			int scoreWidth = g.getFontMetrics().stringWidth(scoreString);
+			g.drawString("Score: ", WINDOW_WIDTH - 16 - timeWidth - scoreWidth - labelWidth, WINDOW_HEIGHT - 9);
+	
+			if (game.getScore() < 0) {
+				g.setColor(new Color(0xFF0000));
+			}
+			g.drawString(scoreString, WINDOW_WIDTH - 16 - timeWidth - scoreWidth, WINDOW_HEIGHT - 9);	
+		}
 	}
 	
 	public void paint(Graphics g) {
@@ -614,7 +633,7 @@ public class GUI extends JPanel {
 			}
 		});
 		
-		start(true, Solitaire.ScoringMode.Vegas, -52);
+		start(true, Solitaire.ScoringMode.Standard, 0);
 	}
 	
 	public void updateUndoButton() {

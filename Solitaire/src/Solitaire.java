@@ -242,7 +242,8 @@ public class Solitaire {
 			
 		} else if (column >= FOUNDATION_COLUMN_BASE) {
 			couldRelease = foundations[column - FOUNDATION_COLUMN_BASE].addPile(holding);
-			if (couldRelease) {
+			
+			if (couldRelease && (holdOrigin < FOUNDATION_COLUMN_BASE || holdOrigin >= HAND_COLUMN_BASE)) {
 				if (scoringMode == ScoringMode.Standard) changeScore(10);
 				else if (scoringMode == ScoringMode.Vegas) changeScore(5); 
 			}
