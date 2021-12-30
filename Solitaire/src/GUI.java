@@ -28,6 +28,8 @@ public class GUI extends JPanel {
 	static final int TABLEAU_Y_DISTANCE = 22;
 	static final int DEAL_3_SHIFT_DIST = 35;
 	
+	protected boolean cumulativeScoring = false;
+	
 	protected int recentMouseX;
 	protected int recentMouseY;
 	protected int recentCardX;
@@ -39,6 +41,7 @@ public class GUI extends JPanel {
 	static final int CARD_IMAGE_KING = 2;
 	
 	protected JMenuItem undoBtn;
+	protected JMenuItem cumBtn;
 	
 	protected TexturePaint cardBackPaint;
 	protected TexturePaint pictureCardPaint;
@@ -442,7 +445,7 @@ public class GUI extends JPanel {
 			g.drawString("YOU WON!", WINDOW_WIDTH / 2 - 165, WINDOW_HEIGHT / 2);
 		}
 		
-    	updateUndoButton();
+		updateMenubar();
 	}
 	
 	public GUI.CardClickInfo detectMousePosition(int x, int y) {
@@ -508,7 +511,7 @@ public class GUI extends JPanel {
 	}
 	
 	void start(boolean draw3) {
-		start(draw3, game.scoringMode, game.scoringMode == Solitaire.ScoringMode.Vegas ? game.score - 52 : 0);
+		start(draw3, game.scoringMode, game.scoringMode == Solitaire.ScoringMode.Vegas ? (cumulativeScoring ? game.score - 52 : -52) : 0);
 	}
 	
 	GUI(boolean draw3) {
@@ -636,8 +639,9 @@ public class GUI extends JPanel {
 		start(true, Solitaire.ScoringMode.Standard, 0);
 	}
 	
-	public void updateUndoButton() {
+	public void updateMenubar() {
 		undoBtn.setEnabled(game.canUndo());
+		cumBtn.setEnabled(game.scoringMode == Solitaire.ScoringMode.Vegas);
 	}
 	
 	public static void main(String[] args) {
@@ -687,7 +691,6 @@ public class GUI extends JPanel {
 				}
 			}
 		});
-		gui.updateUndoButton();
 		gameMenu.add(gui.undoBtn);
 		
 		JMenuItem deal1Btn = new JMenuItem("Play draw 1");
@@ -709,6 +712,50 @@ public class GUI extends JPanel {
 		gameMenu.add(deal3Btn);
 		
 		gameMenu.add(new JSeparator());
+		
+		JMenuItem stdBtn = new JMenuItem("Standard scoring");
+		stdBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				gui.start(gui.game.draw3, Solitaire.ScoringMode.Standard, 0);
+			}
+		});
+		gameMenu.add(stdBtn);
+		
+		JMenuItem vegasBtn = new JMenuItem("Vegas scoring");
+		vegasBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				gui.start(gui.game.draw3, Solitaire.ScoringMode.Vegas, gui.cumulativeScoring ? gui.game.score - 52 : -52);
+			}
+		});
+		gameMenu.add(vegasBtn);
+
+		JMenuItem noneBtn = new JMenuItem("No scoring");
+		noneBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				gui.start(gui.game.draw3, Solitaire.ScoringMode.None, 0);
+			}
+		});
+		gameMenu.add(noneBtn);
+		
+		gui.cumBtn = new JMenuItem("Enable cumulative scoring");
+		gui.cumBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (gui.cumulativeScoring) {
+					gui.cumulativeScoring = false;
+					gui.cumBtn.setText("Enable cumulative scoring");
+				} else {
+					gui.cumulativeScoring = true;
+					gui.cumBtn.setText("Disable cumulative scoring");
+				}
+			}
+		});
+		gameMenu.add(gui.cumBtn);
+		
+		gameMenu.add(new JSeparator());
 
 		JMenuItem closeBtn = new JMenuItem("Exit");
 		closeBtn.addActionListener(new ActionListener() {
@@ -719,6 +766,8 @@ public class GUI extends JPanel {
 		});
 		gameMenu.add(closeBtn);
 		
+		gui.updateMenubar();
+
 		frame.setContentPane(gui);
 		frame.pack();
 		frame.setVisible(true);
