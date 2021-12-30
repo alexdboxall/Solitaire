@@ -22,12 +22,42 @@ public class Solitaire {
 	protected int resets = 0;						//how many times the player has gone through the entire dealPile (used for scoring in deal 3 mode)
 	protected int holdOrigin;						//the pile index (see above constants) where the pile under the mouse came from (so cards can be
 													//moved back where they were if a move is illegal)
+	Solitaire undoState;
+	
+	//copy constructor, allows us to save board state so the undo functionality can work
+	public Solitaire(Solitaire other) {		
+		firstMoveTimestamp = other.firstMoveTimestamp;
+		winSeconds = other.winSeconds;
+		score = other.score;
+		previousPenaltyTime = other.previousPenaltyTime;
+		draw3 = other.draw3;
+		resets = other.resets;
+		holdOrigin = other.holdOrigin;
+		undoState = null;
+				
+		holding = new TableauPile(other.holding);
+		
+		dealPile = new DealPile(other.dealPile);
+		showingPile = new DealPile(other.showingPile);
+		discardPile = new DealPile(other.discardPile);
+		
+		foundations = new FoundationPile[4];
+		tableau = new Tableau[7];
+		
+		for (int i = 0; i < 4; ++i) {
+			foundations[i] = new FoundationPile(other.foundations[i]);
+		}
+		for (int i = 0; i < 7; ++i) {
+			tableau[i] = new Tableau(other.tableau[i]);
+		}
+	}
 	
 	//constructor. starts game in either draw1 or draw3 mode
 	public Solitaire(boolean _draw3) {
 		draw3 = _draw3;
 		holding = new TableauPile();
 		resets = 0;
+		undoState = null;
 		
 		foundations = new FoundationPile[4];
 		for (int i = 0; i < 4; ++i) {
@@ -48,6 +78,36 @@ public class Solitaire {
 		score = 0;
 		previousPenaltyTime = 0;
 		winSeconds = 0;
+	}
+	
+	
+	public void undo() {
+		if (!canUndo()) {
+			return;
+		}
+		
+		tableau = undoState.tableau;
+		holding = undoState.holding;
+		dealPile = undoState.dealPile;
+		showingPile = undoState.showingPile;
+		discardPile = undoState.discardPile;
+		foundations = undoState.foundations;
+		
+		firstMoveTimestamp = undoState.firstMoveTimestamp;
+		winSeconds = undoState.winSeconds;
+		score = undoState.score;
+		previousPenaltyTime = undoState.previousPenaltyTime;
+		draw3 = undoState.draw3;
+		resets = undoState.resets;
+		holdOrigin = undoState.holdOrigin;
+		
+		undoState = null;
+		
+		//changeScore(-25);
+	}
+	
+	public void saveStateForUndo() {
+		undoState = new Solitaire(this);
 	}
 	
 	//adds (or subtracts) an amount from the score, ensuring the final
@@ -92,6 +152,10 @@ public class Solitaire {
 		return true;
 	}
 	
+	public boolean canUndo() {
+		return undoState != null;
+	}
+
 	public void checkForWin() {
 		if (isWon() && winSeconds == 0) {
 			//record time when win occured
@@ -107,6 +171,8 @@ public class Solitaire {
 	//pick up a pile of cards from a given pile ID
 	//numCards determines how many cards from the parent pile are grabbed (from the front)
 	public void hold(int column, int numCards) {
+		saveStateForUndo();
+
 		holdOrigin = column;
 		
 		if (column >= HAND_COLUMN_BASE) {
@@ -204,7 +270,8 @@ public class Solitaire {
 	
 	public void flipHand(int count) {		
 		setTimestampIfNeeded();
-		
+		saveStateForUndo();
+
 		while (showingPile.getHeight() != 0) {
 			discardPile.forceAddCard(showingPile.removeBottomCard());
 		}
@@ -220,6 +287,9 @@ public class Solitaire {
 	}
 	
 	public void flipColumn(int column) {
+		setTimestampIfNeeded();
+		saveStateForUndo();
+
 		tableau[column].flipOverCard();
 		changeScore(5);
 	}

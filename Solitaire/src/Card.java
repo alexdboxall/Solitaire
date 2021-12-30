@@ -1,5 +1,5 @@
 
-
+// must not store any objects, as shallow copies are done to card objects
 public class Card {
 
 	public enum Suit {

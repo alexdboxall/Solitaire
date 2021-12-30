@@ -32,6 +32,8 @@ public class GUI extends JPanel {
 	protected int recentCardX;
 	protected int recentCardY;
 	
+	protected JMenuItem undoBtn;
+	
 	protected TexturePaint cardBackPaint;
 	
 	class CardClickInfo {
@@ -396,6 +398,8 @@ public class GUI extends JPanel {
 			g.setFont(new Font("Arial", Font.BOLD, 48));
 			g.drawString("YOU \"WINNED\"!", WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 2);
 		}
+		
+    	updateUndoButton();
 	}
 	
 	public GUI.CardClickInfo detectMousePosition(int x, int y) {
@@ -559,6 +563,10 @@ public class GUI extends JPanel {
 		game = new Solitaire(draw3);
 	}
 	
+	public void updateUndoButton() {
+		undoBtn.setEnabled(game.canUndo());
+	}
+	
 	public static void main(String[] args) {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -595,6 +603,20 @@ public class GUI extends JPanel {
 		
 		gameMenu.add(new JSeparator());
 		
+		gui.undoBtn = new JMenuItem("Undo");
+		gui.undoBtn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
+		gui.undoBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (gui.game.canUndo()) {
+					gui.game.undo();
+					gui.repaint();
+				}
+			}
+		});
+		gui.updateUndoButton();
+		gameMenu.add(gui.undoBtn);
+		
 		JMenuItem deal1Btn = new JMenuItem("Play draw 1");
 		deal1Btn.addActionListener(new ActionListener() {
 			@Override
@@ -612,6 +634,17 @@ public class GUI extends JPanel {
 			}
 		});
 		gameMenu.add(deal3Btn);
+		
+		gameMenu.add(new JSeparator());
+
+		JMenuItem closeBtn = new JMenuItem("Exit");
+		closeBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				frame.dispose();
+			}
+		});
+		gameMenu.add(closeBtn);
 		
 		frame.setContentPane(gui);
 		frame.pack();

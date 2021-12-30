@@ -1,3 +1,4 @@
+import java.util.LinkedList;
 
 public class TableauPile extends Pile {
 
@@ -27,5 +28,9 @@ public class TableauPile extends Pile {
 
 	public TableauPile() {
 		super();
+	}
+	
+	public TableauPile(Pile p) {
+		super(p);
 	}
 }

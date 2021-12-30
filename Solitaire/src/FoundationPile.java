@@ -21,4 +21,11 @@ public class FoundationPile extends Pile {
 		return false;
 	}
 
+	public FoundationPile() {
+		super();
+	}
+	
+	public FoundationPile(Pile p) {
+		super(p);
+	}
 }

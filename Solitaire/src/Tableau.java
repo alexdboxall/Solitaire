@@ -4,12 +4,9 @@ public class Tableau {
 	protected TableauPile visiblePile;
 	protected TableauPile hiddenPile;
 	
-	public TableauPile getVisiblePile() {
-		return visiblePile;
-	}
-	
-	public TableauPile getHiddenPile() {
-		return hiddenPile;
+	Tableau(Tableau other) {
+		visiblePile = new TableauPile(other.visiblePile);
+		hiddenPile = new TableauPile(other.hiddenPile);
 	}
 	
 	Tableau(int initialCardCount, DealPile dealPile) {
@@ -21,6 +18,14 @@ public class Tableau {
 		}
 		
 		flipOverCard();
+	}
+	
+	public TableauPile getVisiblePile() {
+		return visiblePile;
+	}
+	
+	public TableauPile getHiddenPile() {
+		return hiddenPile;
 	}
 	
 	void flipOverCard() {
@@ -42,4 +47,5 @@ public class Tableau {
 		
 		System.out.printf("\n");
 	}
+
 }

@@ -7,6 +7,15 @@ public abstract class Pile {
 	
 	protected LinkedList<Card> cards;
 	
+	//copy constructor
+	public Pile(Pile other) {
+		cards = new LinkedList<Card>();
+		
+		for (Card card : other.cards) {
+			cards.add(card);
+		}
+	}
+	
 	Card getBottomCard() {
 		return cards.getLast();
 	}

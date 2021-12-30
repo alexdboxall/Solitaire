@@ -26,4 +26,12 @@ public class DealPile extends Pile {
 		// ensure it is shuffled
 		Collections.shuffle(cards);
 	}
+	
+	public DealPile() {
+		super();
+	}
+	
+	public DealPile(Pile p) {
+		super(p);
+	}
 }
