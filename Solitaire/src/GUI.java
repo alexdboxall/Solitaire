@@ -297,11 +297,20 @@ public class GUI extends JPanel {
 		int dealCards = game.dealPile.getHeight();
 		
 		if (dealCards == 0) {
-			g.setColor(new Color(0x00FF00));
-			g.fillOval(DRAW_X_POS + CARD_WIDTH / 8, DRAW_Y_POS + (CARD_HEIGHT - CARD_WIDTH) / 2 + CARD_WIDTH / 8, CARD_WIDTH * 6 / 8, CARD_WIDTH * 6 / 8);
-			g.setColor(new Color(0x008000));
-			g.fillOval(DRAW_X_POS + CARD_WIDTH / 6, DRAW_Y_POS + (CARD_HEIGHT - CARD_WIDTH) / 2 + CARD_WIDTH / 6, CARD_WIDTH * 4 / 6, CARD_WIDTH * 4 / 6);
-
+			if (game.canFlipHand()) {
+				g.setColor(new Color(0x00FF00));
+				g.fillOval(DRAW_X_POS + CARD_WIDTH / 8, DRAW_Y_POS + (CARD_HEIGHT - CARD_WIDTH) / 2 + CARD_WIDTH / 8, CARD_WIDTH * 6 / 8, CARD_WIDTH * 6 / 8);
+				g.setColor(new Color(0x008000));
+				g.fillOval(DRAW_X_POS + CARD_WIDTH / 6, DRAW_Y_POS + (CARD_HEIGHT - CARD_WIDTH) / 2 + CARD_WIDTH / 6, CARD_WIDTH * 4 / 6, CARD_WIDTH * 4 / 6);
+			} else {
+				Graphics2D g2 = (Graphics2D) g;
+				g2.setColor(new Color(0xFF0000));
+				g2.setStroke(new BasicStroke(5));
+				g2.drawLine(DRAW_X_POS + CARD_WIDTH / 8, DRAW_Y_POS + (CARD_HEIGHT - CARD_WIDTH) / 2 + CARD_WIDTH / 8, DRAW_X_POS + CARD_WIDTH * 7 / 8, DRAW_Y_POS + (CARD_HEIGHT - CARD_WIDTH) / 2 + CARD_WIDTH * 7 / 8);
+				g2.drawLine(DRAW_X_POS + CARD_WIDTH / 8, DRAW_Y_POS + (CARD_HEIGHT - CARD_WIDTH) / 2 + CARD_WIDTH * 7 / 8, DRAW_X_POS + CARD_WIDTH * 7 / 8, DRAW_Y_POS + (CARD_HEIGHT - CARD_WIDTH) / 2 + CARD_WIDTH / 8);
+				g2.setStroke(new BasicStroke(1));
+			}
+			
 		} else {
 			for (int i = 0; i < dealCards / 8 + 1; ++i) {
 				drawBackOfCard(g, DRAW_X_POS + 2 * i, DRAW_Y_POS + i);
@@ -474,9 +483,13 @@ public class GUI extends JPanel {
 		return new CardClickInfo(tableau, cards, cardX, cardY);
 	}
 	
-	void start(boolean draw3) {
-		game = new Solitaire(draw3);
+	void start(boolean draw3, Solitaire.ScoringMode mode, int initScore) {
+		game = new Solitaire(draw3, mode, initScore);
 		repaint();
+	}
+	
+	void start(boolean draw3) {
+		start(draw3, game.scoringMode, game.scoringMode == Solitaire.ScoringMode.Vegas ? game.score - 52 : 0);
 	}
 	
 	GUI(boolean draw3) {
@@ -601,7 +614,7 @@ public class GUI extends JPanel {
 			}
 		});
 		
-		game = new Solitaire(draw3);
+		start(true, Solitaire.ScoringMode.Vegas, -52);
 	}
 	
 	public void updateUndoButton() {
