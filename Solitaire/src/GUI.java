@@ -401,7 +401,7 @@ public class GUI extends JPanel {
 		if (game.isWon()) {
 			g.setColor(new Color(0xFFFF00));
 			g.setFont(new Font("Arial", Font.BOLD, 48));
-			g.drawString("YOU \"WINNED\"!", WINDOW_WIDTH / 2 - 165, WINDOW_HEIGHT / 2);
+			g.drawString("YOU WON!", WINDOW_WIDTH / 2 - 165, WINDOW_HEIGHT / 2);
 		}
 		
     	updateUndoButton();
@@ -530,6 +530,10 @@ public class GUI extends JPanel {
 
 			@Override
 			public void mousePressed(MouseEvent e) {
+				if (game.isWon()) {
+					return;
+				}
+				
 				recentMouseX = e.getX();
 				recentMouseY = e.getY();
 				
