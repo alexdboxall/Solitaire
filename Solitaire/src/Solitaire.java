@@ -22,6 +22,8 @@ public class Solitaire {
 	protected int resets = 0;						//how many times the player has gone through the entire dealPile (used for scoring in deal 3 mode)
 	protected int holdOrigin;						//the pile index (see above constants) where the pile under the mouse came from (so cards can be
 													//moved back where they were if a move is illegal)
+	protected int numberOfUndos = 0;
+	
 	Solitaire undoState;
 	
 	//copy constructor, allows us to save board state so the undo functionality can work
@@ -33,7 +35,7 @@ public class Solitaire {
 		draw3 = other.draw3;
 		resets = other.resets;
 		holdOrigin = other.holdOrigin;
-		undoState = null;
+		undoState = other.undoState;
 				
 		holding = new TableauPile(other.holding);
 		
@@ -43,6 +45,8 @@ public class Solitaire {
 		
 		foundations = new FoundationPile[4];
 		tableau = new Tableau[7];
+		
+		numberOfUndos = 0;
 		
 		for (int i = 0; i < 4; ++i) {
 			foundations[i] = new FoundationPile(other.foundations[i]);
@@ -74,10 +78,10 @@ public class Solitaire {
 			tableau[i] = new Tableau(i + 1, dealPile);
 		}
 		
-		firstMoveTimestamp = 0;
 		score = 0;
-		previousPenaltyTime = 0;
 		winSeconds = 0;
+		firstMoveTimestamp = 0;
+		previousPenaltyTime = 0;
 	}
 	
 	
@@ -101,9 +105,10 @@ public class Solitaire {
 		resets = undoState.resets;
 		holdOrigin = undoState.holdOrigin;
 		
-		undoState = null;
+		numberOfUndos = undoState.numberOfUndos + 1;		
 		
-		//changeScore(-25);
+		//allows for infinite undos, but only if there is something to undo
+		undoState = undoState == null ? null : undoState.undoState;
 	}
 	
 	public void saveStateForUndo() {
@@ -161,9 +166,10 @@ public class Solitaire {
 			//record time when win occured
 			winSeconds = getTime();
 			
-			// add bonus points as described here: https://en.wikipedia.org/wiki/Klondike_(solitaire)
+			//add bonus points as described here: https://en.wikipedia.org/wiki/Klondike_(solitaire)
+			//but with a new penalty for each undo
 			if (winSeconds >= 30) {
-				score += (20000 / winSeconds) * 35;
+				score += (20000 / winSeconds) * 35 / (numberOfUndos + 1);
 			}
 		}
 	}
