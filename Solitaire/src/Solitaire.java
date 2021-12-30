@@ -204,7 +204,7 @@ public class Solitaire {
 			showingPile.forceAddPile(holding);
 			
 		} else if (column >= FOUNDATION_COLUMN_BASE) {
-			foundations[column].forceAddPile(holding);
+			foundations[column - FOUNDATION_COLUMN_BASE].forceAddPile(holding);
 			
 		} else {
 			tableau[column].visiblePile.forceAddPile(holding);

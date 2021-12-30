@@ -2,9 +2,11 @@
 import java.awt.*;
 import java.awt.image.*;
 import java.io.File;
+import java.io.IOException;
 import java.awt.event.*;
 import java.util.Iterator;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 
@@ -31,6 +33,11 @@ public class GUI extends JPanel {
 	protected int recentMouseY;
 	protected int recentCardX;
 	protected int recentCardY;
+	
+	static protected BufferedImage cardImages[][];
+	static final int CARD_IMAGE_JACK = 0;
+	static final int CARD_IMAGE_QUEEN = 1;
+	static final int CARD_IMAGE_KING = 2;
 	
 	protected JMenuItem undoBtn;
 	
@@ -272,13 +279,16 @@ public class GUI extends JPanel {
 			drawSymbol(g, x + CARD_WIDTH / 2, y + CARD_HEIGHT / 2 + CARD_HEIGHT * 2 / 9, true, card.suit);
 		
 		} else {
+			try {
+				BufferedImage image = cardImages[card.suit.ordinal()][card.rank - Card.RANK_JACK];
+				if (image != null) {
+					g.drawImage(image.getScaledInstance(CARD_WIDTH * 44 / 72, CARD_HEIGHT * 14 / 16, Image.SCALE_DEFAULT), x + CARD_WIDTH * 14 / 72, y + CARD_HEIGHT / 16, null);
+				}
+			} catch (Exception e) { ; }
+			g.drawRect(x + CARD_WIDTH * 14 / 72, y + CARD_HEIGHT / 16, CARD_WIDTH * 44 / 72, CARD_HEIGHT * 14 / 16);
+
 			drawSymbol(g, x + CARD_WIDTH * 7 / 24, y + CARD_HEIGHT / 2 - CARD_HEIGHT / 3, false, card.suit);
 			drawSymbol(g, x + CARD_WIDTH * 17 / 24, y + CARD_HEIGHT / 2 + CARD_HEIGHT / 3, true, card.suit);
-			g.drawRect(x + CARD_WIDTH * 14 / 72, y + CARD_HEIGHT / 16, CARD_WIDTH * 44 / 72, CARD_HEIGHT * 14 / 16);
-			
-			Graphics2D g2 = (Graphics2D) g;
-			g2.setPaint(pictureCardPaint);
-			//g2.fillRect(x + CARD_WIDTH * 14 / 72, y + CARD_HEIGHT / 4, CARD_WIDTH * 44 / 72, CARD_HEIGHT * 8 / 16);
 		}
 
 	}
@@ -471,6 +481,17 @@ public class GUI extends JPanel {
 	
 	GUI(boolean draw3) {
 		game = null;
+		
+		cardImages = new BufferedImage[4][];
+		
+		cardImages[Card.Suit.Club.ordinal()] = new BufferedImage[3];
+		try {
+			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_JACK] = ImageIO.read(new File("C:/Users/Alex/Desktop/piccards/clubjack.png"));
+			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_QUEEN] = ImageIO.read(new File("C:/Users/Alex/Desktop/piccards/clubqueen.png"));
+			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_KING] = ImageIO.read(new File("C:/Users/Alex/Desktop/piccards/clubking.png"));
+
+		} catch (Exception e) { System.out.printf("HI!\n"); }
+
 		
 		BufferedImage bf = new BufferedImage(2, 2, BufferedImage.TYPE_INT_BGR);
 		bf.setRGB(0, 0, 0x0000FF);
