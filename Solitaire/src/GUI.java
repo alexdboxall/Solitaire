@@ -24,8 +24,8 @@ public class GUI extends JPanel {
 	static final int TABLEAU_DISTANCE = 137;
 	static final int FOUNDATION_X_POS = TABLEAU_X_POS + 3 * TABLEAU_DISTANCE;
 	static final int FOUNDATION_Y_POS = DRAW_Y_POS;
-	static final int TABLEAU_Y_DISTANCE = 18;
-	static final int DEAL_3_SHIFT_DIST = 30;
+	static final int TABLEAU_Y_DISTANCE = 22;
+	static final int DEAL_3_SHIFT_DIST = 35;
 	
 	protected int recentMouseX;
 	protected int recentMouseY;
@@ -35,7 +35,8 @@ public class GUI extends JPanel {
 	protected JMenuItem undoBtn;
 	
 	protected TexturePaint cardBackPaint;
-	
+	protected TexturePaint pictureCardPaint;
+
 	class CardClickInfo {
 	    public final int tableau;
 	    public final int cards;
@@ -274,6 +275,10 @@ public class GUI extends JPanel {
 			drawSymbol(g, x + CARD_WIDTH * 7 / 24, y + CARD_HEIGHT / 2 - CARD_HEIGHT / 3, false, card.suit);
 			drawSymbol(g, x + CARD_WIDTH * 17 / 24, y + CARD_HEIGHT / 2 + CARD_HEIGHT / 3, true, card.suit);
 			g.drawRect(x + CARD_WIDTH * 14 / 72, y + CARD_HEIGHT / 16, CARD_WIDTH * 44 / 72, CARD_HEIGHT * 14 / 16);
+			
+			Graphics2D g2 = (Graphics2D) g;
+			g2.setPaint(pictureCardPaint);
+			//g2.fillRect(x + CARD_WIDTH * 14 / 72, y + CARD_HEIGHT / 4, CARD_WIDTH * 44 / 72, CARD_HEIGHT * 8 / 16);
 		}
 
 	}
@@ -396,7 +401,7 @@ public class GUI extends JPanel {
 		if (game.isWon()) {
 			g.setColor(new Color(0xFFFF00));
 			g.setFont(new Font("Arial", Font.BOLD, 48));
-			g.drawString("YOU \"WINNED\"!", WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 2);
+			g.drawString("YOU \"WINNED\"!", WINDOW_WIDTH / 2 - 165, WINDOW_HEIGHT / 2);
 		}
 		
     	updateUndoButton();
@@ -473,6 +478,17 @@ public class GUI extends JPanel {
 		bf.setRGB(0, 1, 0x000080);
 		bf.setRGB(1, 0, 0x000080);
 		cardBackPaint = new TexturePaint(bf, new Rectangle(0, 0, 5, 5));
+		
+		
+		bf = new BufferedImage(4, 4, BufferedImage.TYPE_INT_BGR);
+		for (int i = 0; i < 4; ++i) {
+			bf.setRGB((i + 0) % 4, i, 0xFFFFFF);
+			bf.setRGB((i + 1) % 4, i, 0xFFFF00);
+			bf.setRGB((i + 2) % 4, i, 0x000000);
+			bf.setRGB((i + 3) % 4, i, 0xFF0000);
+		}
+		pictureCardPaint = new TexturePaint(bf, new Rectangle(0, 0, 5, 5));
+		
 		
 		setPreferredSize(new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT));
 
@@ -583,7 +599,7 @@ public class GUI extends JPanel {
 		} catch (Exception e) {
 		
 		}
-		GUI gui = new GUI(false);
+		GUI gui = new GUI(true);
 
 		JMenuBar menu = new JMenuBar();
 		frame.setJMenuBar(menu);
@@ -608,7 +624,7 @@ public class GUI extends JPanel {
 		gui.undoBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (gui.game.canUndo()) {
+				if (gui.game.canUndo() && !gui.game.isWon()) {
 					gui.game.undo();
 					gui.repaint();
 				}
