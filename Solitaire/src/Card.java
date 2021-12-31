@@ -57,17 +57,4 @@ public class Card {
 	public boolean isRankedOneBelow(Card other) {
 		return rank == other.rank - 1;
 	}
-	
-	public String displayString() {
-		char suitChar = suit == Suit.Heart ? 'H' : 
-				 		suit == Suit.Club ? 'C' : 
-				 		suit == Suit.Spade ? 'S' : 'D';
-		
-		String rankChar = rank == RANK_ACE   ? " A" : 
-						rank == RANK_JACK  ? " J" : 
-						rank == RANK_QUEEN ? " Q" :
-						rank == RANK_KING  ? " K" : String.format("%2d", rank);
-		
-		return String.format("%s%s", rankChar, suitChar);
-	}
 }

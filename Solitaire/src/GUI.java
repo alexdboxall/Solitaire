@@ -49,7 +49,7 @@ public class GUI extends JPanel {
 	static final int CARD_IMAGE_KING = 2;
 	
 	protected JMenuItem undoBtn;
-	protected JMenuItem cumBtn;
+	protected JMenuItem cumulativeBtn;
 	protected JMenuItem timedBtn;
 	
 	protected TexturePaint cardBackPaint;
@@ -158,12 +158,7 @@ public class GUI extends JPanel {
 		
 	}
 	
-	protected void drawCard(Graphics g, int x, int y, Card card, boolean showing) {
-		if (!showing) {
-			drawBackOfCard(g, x, y);
-			return;
-		}
-				
+	protected void drawCard(Graphics g, int x, int y, Card card) {
 		g.setColor(new Color(0xFFFFFF));
 		g.fillRect(x, y, CARD_WIDTH, CARD_HEIGHT);
 		
@@ -332,9 +327,7 @@ public class GUI extends JPanel {
 		
 		int shown = game.showingPile.getHeight() + game.discardPile.getHeight();
 		
-		if (shown != 0) {
-			int discard = game.discardPile.getHeight();
-			
+		if (shown != 0) {			
 			int xpos = DRAW_X_POS + TABLEAU_DISTANCE;
 			int ypos = DRAW_Y_POS;
 			int i = 0;
@@ -342,7 +335,7 @@ public class GUI extends JPanel {
 			Iterator<Card> reverseIter = game.discardPile.cards.descendingIterator();
 			while (reverseIter.hasNext()) {
 				Card card = reverseIter.next();
-				drawCard(g, xpos, ypos, card, true);
+				drawCard(g, xpos, ypos, card);
 				
 				if (i % 8 == 7) {
 					xpos += 2;
@@ -354,7 +347,7 @@ public class GUI extends JPanel {
 			reverseIter = game.showingPile.cards.descendingIterator();
 			while (reverseIter.hasNext()) {
 				Card card = reverseIter.next();
-				drawCard(g, xpos, ypos, card, true);
+				drawCard(g, xpos, ypos, card);
 				xpos += 28;
 			}
 		}
@@ -364,7 +357,7 @@ public class GUI extends JPanel {
 	protected void paintTableau(Graphics g) {
 		for (int t = 0; t < 7; ++t) {
 			int ypos = TABLEAU_Y_POS;
-			for (Card card : game.tableau[t].hiddenPile.cards) {
+			for (@SuppressWarnings("unused") Card card : game.tableau[t].hiddenPile.cards) {
 				drawBackOfCard(g, TABLEAU_X_POS + t * TABLEAU_DISTANCE, ypos);
 				ypos += TABLEAU_Y_DISTANCE;
 			}
@@ -372,7 +365,7 @@ public class GUI extends JPanel {
 			Iterator<Card> reverseIter = game.tableau[t].visiblePile.cards.descendingIterator();
 			while (reverseIter.hasNext()) {
 				Card card = reverseIter.next();
-				drawCard(g, TABLEAU_X_POS + t * TABLEAU_DISTANCE, ypos, card, true);
+				drawCard(g, TABLEAU_X_POS + t * TABLEAU_DISTANCE, ypos, card);
 				ypos += TABLEAU_Y_DISTANCE;
 			}
 		}
@@ -384,7 +377,7 @@ public class GUI extends JPanel {
 			g.drawRect(FOUNDATION_X_POS + i * TABLEAU_DISTANCE, FOUNDATION_Y_POS, CARD_WIDTH, CARD_HEIGHT);
 			
 			if (game.foundations[i].getHeight() != 0) {
-				drawCard(g, FOUNDATION_X_POS + i * TABLEAU_DISTANCE, FOUNDATION_Y_POS, game.foundations[i].getTopCard(), true);
+				drawCard(g, FOUNDATION_X_POS + i * TABLEAU_DISTANCE, FOUNDATION_Y_POS, game.foundations[i].getTopCard());
 			}
 		}
 	}
@@ -399,7 +392,7 @@ public class GUI extends JPanel {
 		Iterator<Card> reverseIter = game.holding.cards.descendingIterator();
 		while (reverseIter.hasNext()) {
 			Card card = reverseIter.next();
-			drawCard(g, recentMouseX + recentCardX, ypos, card, true);
+			drawCard(g, recentMouseX + recentCardX, ypos, card);
 			ypos += 15;
 		}
 	}
@@ -543,7 +536,7 @@ public class GUI extends JPanel {
 		start(opt);
 	}
 	
-	GUI(boolean draw3) {
+	GUI() {
 		game = null;
 		
 		cardImages = new BufferedImage[4][];
@@ -670,27 +663,11 @@ public class GUI extends JPanel {
 	
 	public void updateMenubar() {
 		undoBtn.setEnabled(game.canUndo());
-		cumBtn.setEnabled(game.options.scoring == Solitaire.ScoringMode.Vegas);
+		cumulativeBtn.setEnabled(game.options.scoring == Solitaire.ScoringMode.Vegas);
 	}
 	
-	public static void main(String[] args) {
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e1) {
-			e1.printStackTrace();
-		}
-		
-		JFrame frame = new JFrame("Solitaire");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
-		try {
-			ImageIcon icon = (ImageIcon) FileSystemView.getFileSystemView().getSystemIcon(new File("solitaire.exe"));	//new ImageIcon("C:/Users/Alex/source/repos/SolitaireExe/icon.png");
-			frame.setIconImage(icon.getImage());
-		} catch (Exception e) {
-		
-		}
-		GUI gui = new GUI(true);
-
+	
+	public void addMenus(JFrame frame) {
 		JMenuBar menu = new JMenuBar();
 		frame.setJMenuBar(menu);
 		
@@ -702,36 +679,36 @@ public class GUI extends JPanel {
 		dealBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				GameOptions opt = gui.game.options;
-				opt.setInitialScore(gui.game.score);
-				gui.start(opt);
+				GameOptions opt = game.options;
+				opt.setInitialScore(game.score);
+				start(opt);
 			}
 		});
 		gameMenu.add(dealBtn);
 		
 		gameMenu.add(new JSeparator());
 		
-		gui.undoBtn = new JMenuItem("Undo");
-		gui.undoBtn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
-		gui.undoBtn.addActionListener(new ActionListener() {
+		undoBtn = new JMenuItem("Undo");
+		undoBtn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
+		undoBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (gui.game.canUndo() && !gui.game.isWon()) {
-					gui.game.undo();
-					gui.repaint();
+				if (game.canUndo() && !game.isWon()) {
+					game.undo();
+					repaint();
 				}
 			}
 		});
-		gameMenu.add(gui.undoBtn);
+		gameMenu.add(undoBtn);
 		
 		JMenuItem deal1Btn = new JMenuItem("Play draw 1");
 		deal1Btn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				GameOptions opt = gui.game.options;
-				opt.setInitialScore(gui.game.score);
+				GameOptions opt = game.options;
+				opt.setInitialScore(game.score);
 				opt.draw3 = false;
-				gui.start(opt);
+				start(opt);
 			}
 		});
 		gameMenu.add(deal1Btn);
@@ -740,10 +717,10 @@ public class GUI extends JPanel {
 		deal3Btn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				GameOptions opt = gui.game.options;
-				opt.setInitialScore(gui.game.score);
+				GameOptions opt = game.options;
+				opt.setInitialScore(game.score);
 				opt.draw3 = true;
-				gui.start(opt);
+				start(opt);
 			}
 		});
 		gameMenu.add(deal3Btn);
@@ -754,9 +731,9 @@ public class GUI extends JPanel {
 		stdBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				GameOptions opt = gui.game.options;
+				GameOptions opt = game.options;
 				opt.scoring = Solitaire.ScoringMode.Standard;
-				gui.start(opt);
+				start(opt);
 			}
 		});
 		gameMenu.add(stdBtn);
@@ -765,9 +742,9 @@ public class GUI extends JPanel {
 		vegasBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				GameOptions opt = gui.game.options;
+				GameOptions opt = game.options;
 				opt.scoring = Solitaire.ScoringMode.Vegas;
-				gui.start(opt);
+				start(opt);
 			}
 		});
 		gameMenu.add(vegasBtn);
@@ -776,44 +753,44 @@ public class GUI extends JPanel {
 		noneBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				GameOptions opt = gui.game.options;
+				GameOptions opt = game.options;
 				opt.scoring = Solitaire.ScoringMode.None;
-				gui.start(opt);
+				start(opt);
 			}
 		});
 		gameMenu.add(noneBtn);
 		
 		gameMenu.add(new JSeparator());
 		
-		gui.timedBtn = new JMenuItem("Disable timed game");
-		gui.timedBtn.addActionListener(new ActionListener() {
+		timedBtn = new JMenuItem("Disable timed game");
+		timedBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (gui.game.options.timed) {
-					gui.game.options.timed = false;
-					gui.timedBtn.setText("Enable timed game");
+				if (game.options.timed) {
+					game.options.timed = false;
+					timedBtn.setText("Enable timed game");
 				} else {
-					gui.game.options.timed = true;
-					gui.timedBtn.setText("Disable timed game");
+					game.options.timed = true;
+					timedBtn.setText("Disable timed game");
 				}
 			}
 		});
-		gameMenu.add(gui.timedBtn);
+		gameMenu.add(timedBtn);
 		
-		gui.cumBtn = new JMenuItem("Enable cumulative scoring");
-		gui.cumBtn.addActionListener(new ActionListener() {
+		cumulativeBtn = new JMenuItem("Enable cumulative scoring");
+		cumulativeBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (gui.game.options.cumulative) {
-					gui.game.options.cumulative = false;
-					gui.cumBtn.setText("Enable cumulative scoring");
+				if (game.options.cumulative) {
+					game.options.cumulative = false;
+					cumulativeBtn.setText("Enable cumulative scoring");
 				} else {
-					gui.game.options.cumulative = true;
-					gui.cumBtn.setText("Disable cumulative scoring");
+					game.options.cumulative = true;
+					cumulativeBtn.setText("Disable cumulative scoring");
 				}
 			}
 		});
-		gameMenu.add(gui.cumBtn);
+		gameMenu.add(cumulativeBtn);
 	
 		
 		gameMenu.add(new JSeparator());
@@ -831,7 +808,7 @@ public class GUI extends JPanel {
 			preset.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					gui.startFromSeed(presetSeeds[j]);
+					startFromSeed(presetSeeds[j]);
 				}
 			});
 			presetMenu.add(preset);
@@ -884,7 +861,26 @@ public class GUI extends JPanel {
 		});
 		helpMenu.add(aboutBtn);
 
-		gui.updateMenubar();
+		updateMenubar();
+	}
+	
+	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e1) {
+			e1.printStackTrace();
+		}
+		
+		JFrame frame = new JFrame("Solitaire");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		try {
+			ImageIcon icon = (ImageIcon) FileSystemView.getFileSystemView().getSystemIcon(new File("solitaire.exe"));	//new ImageIcon("C:/Users/Alex/source/repos/SolitaireExe/icon.png");
+			frame.setIconImage(icon.getImage());
+		} catch (Exception e) { ; }
+		
+		GUI gui = new GUI();
+		gui.addMenus(frame);
 
 		frame.setContentPane(gui);
 		frame.pack();

@@ -7,8 +7,6 @@
  * 
  */
 
-import java.util.Iterator;
-
 public class Tableau {
 	protected TableauPile visiblePile;
 	protected TableauPile hiddenPile;
@@ -42,19 +40,4 @@ public class Tableau {
 			visiblePile.forceAddCard(hiddenPile.removeTopCard());
 		}
 	}
-	
-	void debugPrint() {		
-		Iterator<Card> hiddenIter = hiddenPile.cards.iterator();
-		Iterator<Card> visibleIter = visiblePile.cards.iterator();
-
-		while (hiddenIter.hasNext()) {
-			System.out.printf(" -  %s\n", hiddenIter.next().displayString());
-		}
-		while (visibleIter.hasNext()) {
-			System.out.printf(" >  %s\n", visibleIter.next().displayString());
-		}
-		
-		System.out.printf("\n");
-	}
-
 }

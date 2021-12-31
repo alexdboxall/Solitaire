@@ -213,7 +213,9 @@ public class Solitaire {
 	//if the game is in progress, return the seconds since the start, if it hasn't started, return zero, if it has been won,
 	//return the time the game took
 	public int getTime() {
-		return winSeconds == 0 ? (int) (firstMoveTimestamp == 0 ? 0 : (System.currentTimeMillis() - firstMoveTimestamp) / 1000) : winSeconds;
+		if (firstMoveTimestamp == 0) return 0;
+		else if (winSeconds == 0) return (int) ((System.currentTimeMillis() - firstMoveTimestamp) / 1000);
+		return winSeconds;
 	}
 	
 	//check if the game has been won
