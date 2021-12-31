@@ -1,12 +1,45 @@
+import java.util.Random;
+
+class GameOptions {
+	Solitaire.ScoringMode scoring;
+	boolean timed;
+	boolean draw3;
+	boolean cumulative;
+	
+	int initialScore;
+	int initialSeed;
+	boolean useSeed;
+	
+	GameOptions() {
+		scoring = Solitaire.ScoringMode.Standard;
+		timed = true;
+		draw3 = true;
+		cumulative = false;
+		
+		initialScore = 0;
+		initialSeed = 0;
+		useSeed = false;
+	}
+	
+	void setInitialScore(int currentScore) {
+		if (scoring == Solitaire.ScoringMode.Vegas) {
+			initialScore = cumulative ? currentScore - 52 : -52;
+		} else {
+			initialScore = 0;
+		}
+	}
+};
 
 public class Solitaire {
 	
+	//used to set how the scoring is done
 	public enum ScoringMode {
 		Standard,
 		Vegas,
 		None
 	}
-	
+
+	GameOptions options;
 	Tableau tableau[];								//stores the 7 columns of cards
 	TableauPile holding;							//the pile of cards held under the mouse
 	DealPile dealPile;								//the pile of cards that can be dealt/turned over. also used to initialise the game
@@ -16,6 +49,7 @@ public class Solitaire {
 		
 	//each pile is given an index for use in hold, release, flip, etc.
 	//the tableaus get indicies 0 thru 6
+	//these must remain in this order (ie. DRAW_PILE_BASE cannot be less than HAND_COLUMN_BASE, etc.)
 	static final int FOUNDATION_COLUMN_BASE = 7;	//base index for the foundations (7 thru 10)
 	static final int HAND_COLUMN_BASE = 11;			//index for the showingPile (11)
 	static final int DRAW_PILE_BASE = 12;			//dummy index used for clicking on the dealPile (used by GUI routines)
@@ -24,40 +58,38 @@ public class Solitaire {
 	protected int winSeconds = 0;					//zero before game is won, if game is won then how long it took to win 
 	protected int score = 0;						//score (may not reflect latest time penalty, that is gone in getScore)
 	protected int previousPenaltyTime = 0;			//used to determine when penalties are applied (ie. to not double count them)
-	protected boolean draw3 = true;					//deal 1 or draw 3 mode
-	protected ScoringMode scoringMode;
 	protected int resets = 0;						//how many times the player has gone through the entire dealPile (used for scoring in deal 3 mode)
 	protected int holdOrigin;						//the pile index (see above constants) where the pile under the mouse came from (so cards can be
 													//moved back where they were if a move is illegal)
-	protected int numberOfUndos = 0;
+	protected int numberOfUndos = 0;				//persists between undos, used to reduce bonus score if undos were made
+	protected int seed = 0;
+	Solitaire undoState;							//stores the state of the game prior to this one. It also contains an undoState,
+													//which allows for infinite undos. When an undo is performed, we reload variables from here
 	
-	static protected int seed = 0;
-	
-	Solitaire undoState;
-	
-	//copy constructor, allows us to save board state so the undo functionality can work
+	//copy constructor, performing a deep copy of the piles
+	//this allows us to save the game state, so the undo functionality can work
 	public Solitaire(Solitaire other) {		
+		//shallow copy value types
 		firstMoveTimestamp = other.firstMoveTimestamp;
 		winSeconds = other.winSeconds;
 		score = other.score;
 		previousPenaltyTime = other.previousPenaltyTime;
-		draw3 = other.draw3;
 		resets = other.resets;
 		holdOrigin = other.holdOrigin;
 		undoState = other.undoState;
-		scoringMode = other.scoringMode;
-				
+		numberOfUndos = other.numberOfUndos;
+		options = other.options;
+	
+		//deep copy the piles
 		holding = new TableauPile(other.holding);
-		
 		dealPile = new DealPile(other.dealPile);
 		showingPile = new DealPile(other.showingPile);
 		discardPile = new DealPile(other.discardPile);
 		
+		//allocate arrays...
 		foundations = new FoundationPile[4];
 		tableau = new Tableau[7];
-		
-		numberOfUndos = 0;
-		
+		//and then deep copy the rest of the piles
 		for (int i = 0; i < 4; ++i) {
 			foundations[i] = new FoundationPile(other.foundations[i]);
 		}
@@ -66,63 +98,67 @@ public class Solitaire {
 		}
 	}
 	
-	//constructor. starts game in either draw1 or draw3 mode
-	public Solitaire(boolean _draw3, ScoringMode scoreMode, int initialScore) {
-		draw3 = _draw3;
+	public Solitaire(GameOptions opt) {
+		//initialise variables and arrays
 		holding = new TableauPile();
 		resets = 0;
 		undoState = null;
-		scoringMode = scoreMode;
+		winSeconds = 0;
+		firstMoveTimestamp = 0;
+		previousPenaltyTime = 0;
+		options = opt;
 		
 		foundations = new FoundationPile[4];
 		for (int i = 0; i < 4; ++i) {
 			foundations[i] = new FoundationPile();
 		}
 		
+		score = opt.initialScore;
+		
+		//create the piles
 		dealPile = new DealPile();
 		showingPile = new DealPile();
 		discardPile = new DealPile();
-		dealPile.fill(seed++);
 		
+		seed = opt.useSeed ? opt.initialSeed : (new Random(System.currentTimeMillis())).nextInt();
+		dealPile.fill(seed);
+		
+		//create the tableaus (this is not the standard way of constructing them, as it does it by column, not row)
 		tableau = new Tableau[7];
 		for (int i = 0; i < 7; ++i) {
 			tableau[i] = new Tableau(i + 1, dealPile);
 		}
-		
-		score = initialScore;
-		winSeconds = 0;
-		firstMoveTimestamp = 0;
-		previousPenaltyTime = 0;
 	}
 	
-	
 	public void undo() {
+		//cannot undo if no moves have been made
 		if (!canUndo()) {
 			return;
 		}
 		
+		//reload everything from the save state (deep copy not needed as we are throwing out undoState at the end)
 		tableau = undoState.tableau;
 		holding = undoState.holding;
 		dealPile = undoState.dealPile;
 		showingPile = undoState.showingPile;
 		discardPile = undoState.discardPile;
 		foundations = undoState.foundations;
-		
-		scoringMode = undoState.scoringMode;
 		firstMoveTimestamp = undoState.firstMoveTimestamp;
 		winSeconds = undoState.winSeconds;
 		score = undoState.score;
 		previousPenaltyTime = undoState.previousPenaltyTime;
-		draw3 = undoState.draw3;
 		resets = undoState.resets;
 		holdOrigin = undoState.holdOrigin;
-		
+		options = undoState.options;
 		numberOfUndos = undoState.numberOfUndos + 1;		
 		
 		//allows for infinite undos, but only if there is something to undo
 		undoState = undoState == null ? null : undoState.undoState;
+		
+		//the original undoState is now lost, so no need for deep copy
 	}
 	
+	//save the game state so it can be undone later
 	public void saveStateForUndo() {
 		undoState = new Solitaire(this);
 	}
@@ -130,12 +166,15 @@ public class Solitaire {
 	//adds (or subtracts) an amount from the score, ensuring the final
 	//score is not negative (unless playing in Vegas mode, where you can lose money)
 	protected void changeScore(int amount) {
-		if (scoringMode == ScoringMode.None) {
+		//don't bother with the score if scoring is off
+		if (options.scoring == ScoringMode.None) {
 			return;
 		}
 		
 		score += amount;
-		if (score < 0 && scoringMode == ScoringMode.Standard) {
+		
+		//in standard mode, it cannot be negative (it can be in Vegas mode though)
+		if (score < 0 && options.scoring == ScoringMode.Standard) {
 			score = 0;
 		}
 	}
@@ -144,7 +183,8 @@ public class Solitaire {
 	public int getScore() {
 		int time = getTime();
 		
-		if (scoringMode == ScoringMode.Standard) {
+		//only standard mode has time penalties
+		if (options.scoring == ScoringMode.Standard && options.timed) {
 			//if it has been longer than 10 seconds since the last penalty
 			//(loops in case it has been e.g. longer than 20 seconds)
 			while (time - previousPenaltyTime >= 10) {
@@ -180,14 +220,17 @@ public class Solitaire {
 	}
 
 	public void checkForWin() {
-		if (isWon() && winSeconds == 0 && scoringMode == ScoringMode.Standard) {
+		if (isWon() && winSeconds == 0) {
 			//record time when win occured
 			winSeconds = getTime();
 			
-			//add bonus points as described here: https://en.wikipedia.org/wiki/Klondike_(solitaire)
-			//but with a new penalty for each undo
-			if (winSeconds >= 30) {
-				score += (20000 / winSeconds) * 35 / (numberOfUndos + 1);
+			//time bonus is only applied in standard mode
+			if (options.scoring == ScoringMode.Standard) {
+				//add bonus points as described here: https://en.wikipedia.org/wiki/Klondike_(solitaire)
+				//but with a new penalty for each undo
+				if (winSeconds >= 30) {
+					score += (20000 / winSeconds) * 35 / (numberOfUndos + 1);
+				}
 			}
 		}
 	}
@@ -195,8 +238,11 @@ public class Solitaire {
 	//pick up a pile of cards from a given pile ID
 	//numCards determines how many cards from the parent pile are grabbed (from the front)
 	public void hold(int column, int numCards) {
+		//we need to save the state for undoing before anything actually changes
+		//(i.e. don't save the state before a release, as the cards have already moved into holding)
 		saveStateForUndo();
 
+		//save where the cards came from in case the move is cancelled or illegal
 		holdOrigin = column;
 		
 		if (column >= HAND_COLUMN_BASE) {
@@ -213,10 +259,8 @@ public class Solitaire {
 		}
 	}
 	
-	//forces cards to be released on a certain pile, even if under 
-	//normal rules it wouldn't be allowed
-	//used to allow cards to return to their original positions if a 
-	//move is cancelled or illegal
+	//forces cards to be released on a certain pile, even if under normal rules it wouldn't be allowed
+	//used to allow cards to return to their original positions if a move is cancelled or illegal
 	public void forceRelease(int column) {
 		if (column >= HAND_COLUMN_BASE) {
 			showingPile.forceAddPile(holding);
@@ -236,18 +280,21 @@ public class Solitaire {
 		}
 	}
 	
+	//releases the currently held cards onto a given pile
 	public void release(int column) {
 		boolean couldRelease = false;
 			
 		if (column >= HAND_COLUMN_BASE) {
+			//you cannot put back into the hand
 			couldRelease = false;
 			
 		} else if (column >= FOUNDATION_COLUMN_BASE) {
 			couldRelease = foundations[column - FOUNDATION_COLUMN_BASE].addPile(holding);
 			
+			//apply the scoring, only if it didn't come from the foundation (ie. it was already in the foundation and the user just clicked the card)
 			if (couldRelease && (holdOrigin < FOUNDATION_COLUMN_BASE || holdOrigin >= HAND_COLUMN_BASE)) {
-				if (scoringMode == ScoringMode.Standard) changeScore(10);
-				else if (scoringMode == ScoringMode.Vegas) changeScore(5); 
+				if (options.scoring == ScoringMode.Standard) changeScore(10);
+				else if (options.scoring == ScoringMode.Vegas) changeScore(5); 
 			}
 			
 		} else if (column != -1) {
@@ -258,38 +305,50 @@ public class Solitaire {
 				couldRelease = tableau[column].visiblePile.addPile(holding);
 			}
 			
-			if (couldRelease && holdOrigin == HAND_COLUMN_BASE && scoringMode == ScoringMode.Standard) {
+			//apply scoring depending on where it comes from and the scoring mode
+			if (couldRelease && holdOrigin == HAND_COLUMN_BASE && options.scoring == ScoringMode.Standard) {
 				changeScore(5);
 			} else if (couldRelease && holdOrigin == FOUNDATION_COLUMN_BASE) {
-				if (scoringMode == ScoringMode.Standard) changeScore(-15);
-				else if (scoringMode == ScoringMode.Vegas) changeScore(-5);
+				if (options.scoring == ScoringMode.Standard) changeScore(-15);
+				else if (options.scoring == ScoringMode.Vegas) changeScore(-5);
 			}
 		}
 		
 		if (!couldRelease) {
-			// put holding back where it came from
+			//put the cards being held back where it came from if they were not placed on a valid pile
 			forceRelease(holdOrigin);
 		} else {
+			//releasing a card may signal the start of a game
 			setTimestampIfNeeded();
 			
+			//make a previously discarded cards visible if the showing pile is empty
 			if (holdOrigin == HAND_COLUMN_BASE && showingPile.getHeight() == 0 && discardPile.getHeight() != 0) {
 				showingPile.forceAddCard(discardPile.removeTopCard());
 			}
 		}
 		
+		//clear the holding pile
 		holding = new TableauPile();
+		
+		//games can only be won on a card release, so check that here
 		checkForWin();
 	}
 	
+	//'recycles' all of the cards in the hand
+	//assumes that the showing pile is already cleared (ie. moved into the discard pile)
 	protected void resetHand() {
+		//move to the deal pile
 		dealPile = discardPile;
+		
+		//clear the other ones
 		showingPile = new DealPile();
 		discardPile = new DealPile();
 		
 		resets++;
 		
-		if (scoringMode == ScoringMode.Standard) {
-			if (draw3) {
+		//apply the points penalty in standard mode if needed
+		if (options.scoring == ScoringMode.Standard) {
+			if (options.draw3) {
 				if (resets >= 4) changeScore(-20);
 			} else {
 				changeScore(-100);
@@ -297,39 +356,55 @@ public class Solitaire {
 		}
 	}
 	
+	//determines if you can reset the hand (on Vegas mode you can only do it a set number of times)
 	public boolean canFlipHand() {
-		return !(dealPile.getHeight() == 0 && scoringMode == ScoringMode.Vegas && resets == (draw3 ? 2 : 0));
+		return !(dealPile.getHeight() == 0 && options.scoring == ScoringMode.Vegas && resets == (options.draw3 ? 2 : 0));
 	}
 	
-	public void flipHand(int count) {		
+	//flips a card in the hand
+	public void flipHand(int count) {	
+		//this may be the first move the user makes
 		setTimestampIfNeeded();
+		
+		//this can be undone, so save the state
 		saveStateForUndo();
 		
+		//ensure it is legal to do so
 		if (!canFlipHand()) {
 			return;
 		}
 		
+		//we have now committed to turning the card
+		
+		//put everything that was showing in the discard pile
 		while (showingPile.getHeight() != 0) {
 			discardPile.forceAddCard(showingPile.removeBottomCard());
 		}
 		
+		//reset/recycle the hand if needed (must be done after the above step)
 		if (dealPile.getHeight() == 0) {
 			resetHand();
 			return;
 		}
 		
+		//deal the cards
 		for (int i = 0; i < count && dealPile.getHeight() != 0; ++i) {
 			showingPile.forceAddCard(dealPile.removeBottomCard());
 		}
 	}
 	
+	//turn over a flipped over card in the tableau
 	public void flipColumn(int column) {
+		//this cannot be the first move, so this is redundant,
+		//but we may combine the two function calls soon...
+		//TODO: do this
 		setTimestampIfNeeded();
 		saveStateForUndo();
 
+		//turn it over and add the ponts
 		tableau[column].flipOverCard();
 		
-		if (scoringMode == ScoringMode.Standard) {
+		if (options.scoring == ScoringMode.Standard) {
 			changeScore(5);
 		}
 	}

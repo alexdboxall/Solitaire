@@ -27,9 +27,7 @@ public class GUI extends JPanel {
 	static final int FOUNDATION_Y_POS = DRAW_Y_POS;
 	static final int TABLEAU_Y_DISTANCE = 22;
 	static final int DEAL_3_SHIFT_DIST = 35;
-	
-	protected boolean cumulativeScoring = false;
-	
+		
 	protected int recentMouseX;
 	protected int recentMouseY;
 	protected int recentCardX;
@@ -42,9 +40,12 @@ public class GUI extends JPanel {
 	
 	protected JMenuItem undoBtn;
 	protected JMenuItem cumBtn;
+	protected JMenuItem timedBtn;
 	
 	protected TexturePaint cardBackPaint;
 	protected TexturePaint pictureCardPaint;
+	
+	protected GameOptions options;
 
 	class CardClickInfo {
 	    public final int tableau;
@@ -405,13 +406,17 @@ public class GUI extends JPanel {
 		
 		String timeString = String.format("Time: %d", game.getTime());
 		int timeWidth = g.getFontMetrics().stringWidth(timeString);
-		g.drawString(timeString, WINDOW_WIDTH - 9 - timeWidth, WINDOW_HEIGHT - 9);
+		if (game.options.timed) {
+			g.drawString(timeString, WINDOW_WIDTH - 9 - timeWidth, WINDOW_HEIGHT - 9);
+		} else {
+			timeWidth = 0;
+		}
 		
-		if (game.scoringMode != Solitaire.ScoringMode.None) {
+		if (game.options.scoring != Solitaire.ScoringMode.None) {
 			String scoreString = "< REPORT THIS BUG >";
-			if (game.scoringMode == Solitaire.ScoringMode.Standard) {
+			if (game.options.scoring == Solitaire.ScoringMode.Standard) {
 				scoreString = String.format("%d", game.getScore());
-			} else if (game.scoringMode == Solitaire.ScoringMode.Vegas) {
+			} else if (game.options.scoring == Solitaire.ScoringMode.Vegas) {
 				int score = game.getScore();
 				scoreString = score < 0 ? String.format("-$%d", -score) : String.format("$%d", score);
 			}
@@ -466,7 +471,7 @@ public class GUI extends JPanel {
 			}
 		}
 		
-		int draw3Shift = game.draw3 ? DEAL_3_SHIFT_DIST * (game.showingPile.getHeight() - 1) : 0;
+		int draw3Shift = game.options.draw3 ? DEAL_3_SHIFT_DIST * (game.showingPile.getHeight() - 1) : 0;
 		if (y >= DRAW_Y_POS && y <= DRAW_Y_POS + CARD_HEIGHT + game.dealPile.getHeight() / 8) {
 			if (x >= DRAW_X_POS && x <= DRAW_X_POS + CARD_WIDTH + game.dealPile.getHeight() / 4) {
 				cards = 1;
@@ -508,13 +513,24 @@ public class GUI extends JPanel {
 		return new CardClickInfo(tableau, cards, cardX, cardY);
 	}
 	
-	void start(boolean draw3, Solitaire.ScoringMode mode, int initScore) {
-		game = new Solitaire(draw3, mode, initScore);
+	void start(GameOptions opt) {
+		opt.setInitialScore(game.score);
+		game = new Solitaire(opt);
+		opt.useSeed = false;
 		repaint();
 	}
 	
-	void start(boolean draw3) {
-		start(draw3, game.scoringMode, game.scoringMode == Solitaire.ScoringMode.Vegas ? (cumulativeScoring ? game.score - 52 : -52) : 0);
+	void startFromSeed(int seed) {
+		GameOptions opt = game.options;
+		opt.useSeed = true;
+		opt.initialSeed = seed;
+		opt.setInitialScore(game.score);
+		
+		if (opt.cumulative && opt.scoring == Solitaire.ScoringMode.Vegas) {
+			opt.initialScore = game.score;
+		}
+		
+		start(opt);
 	}
 	
 	GUI(boolean draw3) {
@@ -584,7 +600,7 @@ public class GUI extends JPanel {
 		gamePanel.addMouseListener(new MouseListener() {
 
 			@Override
-			public void mouseClicked(MouseEvent e) {								
+			public void mouseClicked(MouseEvent e) {
 			}
 
 			@Override
@@ -599,7 +615,7 @@ public class GUI extends JPanel {
 				CardClickInfo clickInfo = detectMousePosition(recentMouseX, recentMouseY);
 				
 				if (clickInfo.tableau == Solitaire.DRAW_PILE_BASE) {
-					game.flipHand(game.draw3 ? 3 : 1);
+					game.flipHand(game.options.draw3 ? 3 : 1);
 					repaint();
 				
 				} else if (clickInfo.tableau != -1 && game.holding.getHeight() == 0) {
@@ -639,12 +655,12 @@ public class GUI extends JPanel {
 			}
 		});
 		
-		start(true, Solitaire.ScoringMode.Standard, 0);
+		game = new Solitaire(new GameOptions());
 	}
 	
 	public void updateMenubar() {
 		undoBtn.setEnabled(game.canUndo());
-		cumBtn.setEnabled(game.scoringMode == Solitaire.ScoringMode.Vegas);
+		cumBtn.setEnabled(game.options.scoring == Solitaire.ScoringMode.Vegas);
 	}
 	
 	public static void main(String[] args) {
@@ -676,7 +692,9 @@ public class GUI extends JPanel {
 		dealBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				gui.start(gui.game.draw3);
+				GameOptions opt = gui.game.options;
+				opt.setInitialScore(gui.game.score);
+				gui.start(opt);
 			}
 		});
 		gameMenu.add(dealBtn);
@@ -700,7 +718,10 @@ public class GUI extends JPanel {
 		deal1Btn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				gui.start(false);
+				GameOptions opt = gui.game.options;
+				opt.setInitialScore(gui.game.score);
+				opt.draw3 = false;
+				gui.start(opt);
 			}
 		});
 		gameMenu.add(deal1Btn);
@@ -709,7 +730,10 @@ public class GUI extends JPanel {
 		deal3Btn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				gui.start(true);
+				GameOptions opt = gui.game.options;
+				opt.setInitialScore(gui.game.score);
+				opt.draw3 = true;
+				gui.start(opt);
 			}
 		});
 		gameMenu.add(deal3Btn);
@@ -720,7 +744,9 @@ public class GUI extends JPanel {
 		stdBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				gui.start(gui.game.draw3, Solitaire.ScoringMode.Standard, 0);
+				GameOptions opt = gui.game.options;
+				opt.scoring = Solitaire.ScoringMode.Standard;
+				gui.start(opt);
 			}
 		});
 		gameMenu.add(stdBtn);
@@ -729,7 +755,9 @@ public class GUI extends JPanel {
 		vegasBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				gui.start(gui.game.draw3, Solitaire.ScoringMode.Vegas, gui.cumulativeScoring ? gui.game.score - 52 : -52);
+				GameOptions opt = gui.game.options;
+				opt.scoring = Solitaire.ScoringMode.Vegas;
+				gui.start(opt);
 			}
 		});
 		gameMenu.add(vegasBtn);
@@ -738,27 +766,72 @@ public class GUI extends JPanel {
 		noneBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				gui.start(gui.game.draw3, Solitaire.ScoringMode.None, 0);
+				GameOptions opt = gui.game.options;
+				opt.scoring = Solitaire.ScoringMode.None;
+				gui.start(opt);
 			}
 		});
 		gameMenu.add(noneBtn);
+		
+		gameMenu.add(new JSeparator());
+		
+		gui.timedBtn = new JMenuItem("Disable timed game");
+		gui.timedBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (gui.game.options.timed) {
+					gui.game.options.timed = false;
+					gui.timedBtn.setText("Enable timed game");
+				} else {
+					gui.game.options.timed = true;
+					gui.timedBtn.setText("Disable timed game");
+				}
+			}
+		});
+		gameMenu.add(gui.timedBtn);
 		
 		gui.cumBtn = new JMenuItem("Enable cumulative scoring");
 		gui.cumBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (gui.cumulativeScoring) {
-					gui.cumulativeScoring = false;
+				if (gui.game.options.cumulative) {
+					gui.game.options.cumulative = false;
 					gui.cumBtn.setText("Enable cumulative scoring");
 				} else {
-					gui.cumulativeScoring = true;
+					gui.game.options.cumulative = true;
 					gui.cumBtn.setText("Disable cumulative scoring");
 				}
 			}
 		});
 		gameMenu.add(gui.cumBtn);
+	
 		
 		gameMenu.add(new JSeparator());
+		
+		
+		
+		int presetSeeds[] = { 0x567C0882, 0x00000013 };
+		
+		JMenu presetMenu = new JMenu("Preset games");
+		gameMenu.add(presetMenu);
+		
+		for (int i = 0; i < presetSeeds.length; ++i) {
+			final int j = i;
+			JMenuItem preset = new JMenuItem(String.format("Game #%d          ", j + 1));
+			preset.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					gui.startFromSeed(presetSeeds[j]);
+				}
+			});
+			presetMenu.add(preset);
+		}
+		
+		
+		
+		
+		gameMenu.add(new JSeparator());
+
 
 		JMenuItem closeBtn = new JMenuItem("Exit");
 		closeBtn.addActionListener(new ActionListener() {
@@ -773,6 +846,34 @@ public class GUI extends JPanel {
 		JMenu helpMenu = new JMenu("Help");
 		menu.add(helpMenu);
 		
+		JMenuItem howToBtn = new JMenuItem("Help...");
+		howToBtn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
+		howToBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+			}
+		});
+		helpMenu.add(howToBtn);
+		
+		JMenuItem tipBtn = new JMenuItem("Tip");
+		tipBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+			}
+		});
+		//helpMenu.add(tipBtn);
+		
+		
+		helpMenu.add(new JSeparator());
+
+		JMenuItem aboutBtn = new JMenuItem("About...           ");
+		aboutBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+			}
+		});
+		helpMenu.add(aboutBtn);
+
 		gui.updateMenubar();
 
 		frame.setContentPane(gui);
