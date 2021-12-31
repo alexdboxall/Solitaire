@@ -1,4 +1,11 @@
-import java.util.LinkedList;
+
+/*
+ *	Solitaire - TableauPile.java
+ * 
+ * 	Copyright Alex Boxall 2021-2022
+ * 	See LICENSE for licensing details.
+ * 
+ */
 
 public class TableauPile extends Pile {
 

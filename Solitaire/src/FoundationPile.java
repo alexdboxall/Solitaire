@@ -1,4 +1,12 @@
 
+/*
+ *	Solitaire - FoundationPile.java
+ * 
+ * 	Copyright Alex Boxall 2021-2022
+ * 	See LICENSE for licensing details.
+ * 
+ */
+
 public class FoundationPile extends Pile {
 
 	@Override

@@ -1,4 +1,12 @@
 
+/*
+ *	Solitaire - GUI.jar
+ * 
+ * 	Copyright Alex Boxall 2021-2022
+ * 	See LICENSE for licensing details.
+ * 
+ */
+
 import java.awt.*;
 import java.awt.image.*;
 import java.io.File;
@@ -11,6 +19,8 @@ import javax.swing.filechooser.FileSystemView;
 
 public class GUI extends JPanel {
 	
+	private static final long serialVersionUID = 1L;
+
 	protected Solitaire game = null;
 	
 	static final int WINDOW_WIDTH = 1000;

@@ -1,3 +1,12 @@
+
+/*
+ *	Solitaire - Solitaire.java
+ * 
+ * 	Copyright Alex Boxall 2021-2022
+ * 	See LICENSE for licensing details.
+ * 
+ */
+
 import java.util.Random;
 
 class GameOptions {

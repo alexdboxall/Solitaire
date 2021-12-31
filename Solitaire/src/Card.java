@@ -1,4 +1,12 @@
 
+/*
+ *	Solitaire - Card.java
+ * 
+ * 	Copyright Alex Boxall 2021-2022
+ * 	See LICENSE for licensing details.
+ * 
+ */
+
 // must not store any objects, as shallow copies are done to card objects
 public class Card {
 
