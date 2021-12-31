@@ -400,6 +400,9 @@ public class GUI extends JPanel {
 		g.setColor(new Color(0x000000));
 		g.setFont(new Font("Arial", Font.BOLD, 14));
 		
+		String seedString = String.format("Seed: 0x%08X", game.seed);
+		g.drawString(seedString, 9, WINDOW_HEIGHT - 9);
+		
 		String timeString = String.format("Time: %d", game.getTime());
 		int timeWidth = g.getFontMetrics().stringWidth(timeString);
 		g.drawString(timeString, WINDOW_WIDTH - 9 - timeWidth, WINDOW_HEIGHT - 9);
@@ -765,6 +768,10 @@ public class GUI extends JPanel {
 			}
 		});
 		gameMenu.add(closeBtn);
+		
+		
+		JMenu helpMenu = new JMenu("Help");
+		menu.add(helpMenu);
 		
 		gui.updateMenubar();
 

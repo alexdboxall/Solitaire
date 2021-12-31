@@ -31,6 +31,8 @@ public class Solitaire {
 													//moved back where they were if a move is illegal)
 	protected int numberOfUndos = 0;
 	
+	static protected int seed = 0;
+	
 	Solitaire undoState;
 	
 	//copy constructor, allows us to save board state so the undo functionality can work
@@ -80,7 +82,7 @@ public class Solitaire {
 		dealPile = new DealPile();
 		showingPile = new DealPile();
 		discardPile = new DealPile();
-		dealPile.fill();
+		dealPile.fill(seed++);
 		
 		tableau = new Tableau[7];
 		for (int i = 0; i < 7; ++i) {

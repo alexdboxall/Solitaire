@@ -1,4 +1,5 @@
 import java.util.Collections;
+import java.util.Random;
 
 public class DealPile extends Pile {
 
@@ -14,7 +15,7 @@ public class DealPile extends Pile {
 		return false;
 	}
 	
-	public void fill() {
+	public void fill(int seed) {
 		// add one card of every suit
 		for (int rank = Card.RANK_ACE; rank <= Card.RANK_KING; ++rank) {
 			cards.add(new Card(Card.Suit.Club, rank));
@@ -22,9 +23,9 @@ public class DealPile extends Pile {
 			cards.add(new Card(Card.Suit.Diamond, rank));
 			cards.add(new Card(Card.Suit.Heart, rank));
 		}
-		
+
 		// ensure it is shuffled
-		Collections.shuffle(cards);
+		Collections.shuffle(cards, new Random(seed));
 	}
 	
 	public DealPile() {
