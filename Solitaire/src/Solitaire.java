@@ -158,9 +158,13 @@ public class Solitaire {
 		//the original undoState is now lost, so no need for deep copy
 	}
 	
-	//save the game state so it can be undone later
-	public void saveStateForUndo() {
+	//save the game state so it can be undone later, and start the timer if needed
+	public void preMove() {
 		undoState = new Solitaire(this);
+		
+		if (firstMoveTimestamp == 0) {
+			firstMoveTimestamp = System.currentTimeMillis();
+		}
 	}
 	
 	//adds (or subtracts) an amount from the score, ensuring the final
@@ -238,9 +242,7 @@ public class Solitaire {
 	//pick up a pile of cards from a given pile ID
 	//numCards determines how many cards from the parent pile are grabbed (from the front)
 	public void hold(int column, int numCards) {
-		//we need to save the state for undoing before anything actually changes
-		//(i.e. don't save the state before a release, as the cards have already moved into holding)
-		saveStateForUndo();
+		preMove();
 
 		//save where the cards came from in case the move is cancelled or illegal
 		holdOrigin = column;
@@ -270,13 +272,6 @@ public class Solitaire {
 			
 		} else {
 			tableau[column].visiblePile.forceAddPile(holding);
-		}
-	}
-	
-	//sets the start of game time if it has not yet been set
-	public void setTimestampIfNeeded() {
-		if (firstMoveTimestamp == 0) {
-			firstMoveTimestamp = System.currentTimeMillis();
 		}
 	}
 	
@@ -318,9 +313,6 @@ public class Solitaire {
 			//put the cards being held back where it came from if they were not placed on a valid pile
 			forceRelease(holdOrigin);
 		} else {
-			//releasing a card may signal the start of a game
-			setTimestampIfNeeded();
-			
 			//make a previously discarded cards visible if the showing pile is empty
 			if (holdOrigin == HAND_COLUMN_BASE && showingPile.getHeight() == 0 && discardPile.getHeight() != 0) {
 				showingPile.forceAddCard(discardPile.removeTopCard());
@@ -363,11 +355,7 @@ public class Solitaire {
 	
 	//flips a card in the hand
 	public void flipHand(int count) {	
-		//this may be the first move the user makes
-		setTimestampIfNeeded();
-		
-		//this can be undone, so save the state
-		saveStateForUndo();
+		preMove();
 		
 		//ensure it is legal to do so
 		if (!canFlipHand()) {
@@ -395,11 +383,7 @@ public class Solitaire {
 	
 	//turn over a flipped over card in the tableau
 	public void flipColumn(int column) {
-		//this cannot be the first move, so this is redundant,
-		//but we may combine the two function calls soon...
-		//TODO: do this
-		setTimestampIfNeeded();
-		saveStateForUndo();
+		preMove();
 
 		//turn it over and add the ponts
 		tableau[column].flipOverCard();
