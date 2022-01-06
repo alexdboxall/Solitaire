@@ -10,11 +10,13 @@
 import java.awt.*;
 import java.awt.image.*;
 import java.io.File;
+import java.io.InputStream;
 import java.awt.event.*;
 import java.util.Iterator;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileSystemView;
 
 public class GUI extends JPanel {
@@ -23,17 +25,20 @@ public class GUI extends JPanel {
 
 	protected Solitaire game = null;
 	
-	static final int WINDOW_WIDTH = 1000;
-	static final int WINDOW_HEIGHT = 700;
+
+	//these are recomputed if the window changes dimentions
+	static int WINDOW_WIDTH = 1000;
+	static int WINDOW_HEIGHT = 700;
+	static int DRAW_X_POS = 25;
+	static int TABLEAU_X_POS = 25;
+	static int TABLEAU_DISTANCE = 137;
+	static int FOUNDATION_X_POS = TABLEAU_X_POS + 3 * TABLEAU_DISTANCE;
+
 	static final int CARD_WIDTH = 105;
 	static final int CARD_HEIGHT = 150;
 	static final int CARD_BORDER = 6;
-	static final int DRAW_X_POS = 25;
 	static final int DRAW_Y_POS = 20;
-	static final int TABLEAU_X_POS = 20;
 	static final int TABLEAU_Y_POS = 200;
-	static final int TABLEAU_DISTANCE = 137;
-	static final int FOUNDATION_X_POS = TABLEAU_X_POS + 3 * TABLEAU_DISTANCE;
 	static final int FOUNDATION_Y_POS = DRAW_Y_POS;
 	static final int TABLEAU_Y_DISTANCE = 22;
 	static final int DEAL_3_SHIFT_DIST = 35;
@@ -130,9 +135,7 @@ public class GUI extends JPanel {
 				g.fillOval(x - 1, y - 3, 10, 10);
 				g.fillRect(x, y, 1, 10);
 				g.fillRect(x - 1, y + 7, 3, 3);
-				g.fillRect(x - 3, y + 9, 7, 1);
-
-				
+				g.fillRect(x - 3, y + 9, 7, 1);	
 			}
 			
 		} else {
@@ -202,7 +205,7 @@ public class GUI extends JPanel {
 				
 				g.setFont(new Font("Courier New", Font.BOLD, 8));
 				g.drawString("N.INGLIS", x + CARD_WIDTH / 2 - 18, y + CARD_WIDTH / 2 + 62);
-				
+
 			} else {
 				drawSymbol(g, x + CARD_WIDTH / 2, y + CARD_HEIGHT / 2, false, card.suit);
 			}
@@ -405,7 +408,7 @@ public class GUI extends JPanel {
 		g.setFont(new Font("Arial", Font.BOLD, 14));
 		
 		String seedString = String.format("Seed: 0x%08X", game.seed);
-		g.drawString(seedString, 9, WINDOW_HEIGHT - 9);
+		//g.drawString(seedString, 9, WINDOW_HEIGHT - 9);
 		
 		String timeString = String.format("Time: %d", game.getTime());
 		int timeWidth = g.getFontMetrics().stringWidth(timeString);
@@ -416,12 +419,14 @@ public class GUI extends JPanel {
 		}
 		
 		if (game.options.scoring != Solitaire.ScoringMode.None) {
-			String scoreString = "< REPORT THIS BUG >";
+			String scoreString = "";
 			if (game.options.scoring == Solitaire.ScoringMode.Standard) {
 				scoreString = String.format("%d", game.getScore());
 			} else if (game.options.scoring == Solitaire.ScoringMode.Vegas) {
 				int score = game.getScore();
 				scoreString = score < 0 ? String.format("-$%d", -score) : String.format("$%d", score);
+			} else {
+				assert(false);
 			}
 			
 			int labelWidth = g.getFontMetrics().stringWidth("Score: ");
@@ -435,12 +440,13 @@ public class GUI extends JPanel {
 		}
 	}
 	
+	@Override
 	public void paint(Graphics g) {
 		if (game == null) {
 			return;
 		}
-		
-		super.paintComponent(g);
+				
+		super.paint(g);
 		g.setColor(new Color(0x008000));
 		g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 		
@@ -453,7 +459,7 @@ public class GUI extends JPanel {
 		if (game.isWon()) {
 			g.setColor(new Color(0xFFFF00));
 			g.setFont(new Font("Arial", Font.BOLD, 48));
-			g.drawString("YOU WON!", WINDOW_WIDTH / 2 - 165, WINDOW_HEIGHT / 2);
+			g.drawString("YOU WON!", WINDOW_WIDTH / 2 - 131, WINDOW_HEIGHT / 2);
 		}
 		
 		updateMenubar();
@@ -464,7 +470,7 @@ public class GUI extends JPanel {
 		int cards = 0;
 		int cardX = 0;
 		int cardY = 0;
-		
+				
 		if (y >= FOUNDATION_Y_POS && y <= FOUNDATION_Y_POS + CARD_HEIGHT) {
 			if (x >= FOUNDATION_X_POS && ((x - FOUNDATION_X_POS) % TABLEAU_DISTANCE) < CARD_WIDTH) {
 				cards = 1;
@@ -493,20 +499,23 @@ public class GUI extends JPanel {
 		if (y >= TABLEAU_Y_POS) {
 			if (x >= TABLEAU_X_POS && ((x - TABLEAU_X_POS) % TABLEAU_DISTANCE) < CARD_WIDTH) {
 				tableau = ((x - TABLEAU_X_POS) / TABLEAU_DISTANCE);
-
-				int hidden = game.tableau[tableau].hiddenPile.getHeight();
-				
-				int cardsIn = (y - TABLEAU_Y_POS) / TABLEAU_Y_DISTANCE;
-				
-				if (cardsIn - hidden >= 0) {
-					cards = game.tableau[tableau].visiblePile.getHeight() + hidden - cardsIn;
-					if (cards < 1) {
-						cards = 1;
-						cardsIn =  game.tableau[tableau].visiblePile.getHeight() + hidden;
-					}
-					cardX = TABLEAU_X_POS + ((x - TABLEAU_X_POS) / TABLEAU_DISTANCE) * TABLEAU_DISTANCE;
-					cardY = TABLEAU_Y_POS + cardsIn * TABLEAU_Y_DISTANCE;
+				if (tableau < 7) {
+					int hidden = game.tableau[tableau].hiddenPile.getHeight();
 					
+					int cardsIn = (y - TABLEAU_Y_POS) / TABLEAU_Y_DISTANCE;
+					
+					if (cardsIn - hidden >= 0) {
+						cards = game.tableau[tableau].visiblePile.getHeight() + hidden - cardsIn;
+						if (cards < 1) {
+							cards = 1;
+							cardsIn =  game.tableau[tableau].visiblePile.getHeight() + hidden;
+						}
+						cardX = TABLEAU_X_POS + ((x - TABLEAU_X_POS) / TABLEAU_DISTANCE) * TABLEAU_DISTANCE;
+						cardY = TABLEAU_Y_POS + cardsIn * TABLEAU_Y_DISTANCE;
+						
+					} else {
+						tableau = -1;
+					}
 				} else {
 					tableau = -1;
 				}
@@ -514,6 +523,18 @@ public class GUI extends JPanel {
 		}
 		
 		return new CardClickInfo(tableau, cards, cardX, cardY);
+	}
+	
+	void recomputeDistances(int w, int h) {
+		WINDOW_WIDTH = w;
+		WINDOW_HEIGHT = h;
+		TABLEAU_DISTANCE = WINDOW_WIDTH * 138 / 1000;
+		if (TABLEAU_DISTANCE <= CARD_WIDTH) {
+			TABLEAU_DISTANCE = CARD_WIDTH + 1;
+		}
+		DRAW_X_POS = (WINDOW_WIDTH - 6 * TABLEAU_DISTANCE - CARD_WIDTH) / 2;
+		TABLEAU_X_POS = DRAW_X_POS;
+		FOUNDATION_X_POS = TABLEAU_X_POS + 3 * TABLEAU_DISTANCE;
 	}
 	
 	void start(GameOptions opt) {
@@ -542,13 +563,29 @@ public class GUI extends JPanel {
 		cardImages = new BufferedImage[4][];
 		
 		cardImages[Card.Suit.Club.ordinal()] = new BufferedImage[3];
+		cardImages[Card.Suit.Diamond.ordinal()] = new BufferedImage[3];
+		cardImages[Card.Suit.Spade.ordinal()] = new BufferedImage[3];
+		cardImages[Card.Suit.Heart.ordinal()] = new BufferedImage[3];
+		
 		try {
-			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_JACK] = ImageIO.read(new File("C:/Users/Alex/Desktop/piccards/clubjack.png"));
-			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_QUEEN] = ImageIO.read(new File("C:/Users/Alex/Desktop/piccards/clubqueen.png"));
-			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_KING] = ImageIO.read(new File("C:/Users/Alex/Desktop/piccards/clubking.png"));
+			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_JACK] = ImageIO.read(getClass().getResourceAsStream("/img/clubjack.png"));
+			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_QUEEN] = ImageIO.read(getClass().getResourceAsStream("/img/clubqueen.png"));
+			cardImages[Card.Suit.Club.ordinal()][CARD_IMAGE_KING] = ImageIO.read(getClass().getResourceAsStream("/img/clubking.png"));
 
-		} catch (Exception e) { System.out.printf("HI!\n"); }
+			cardImages[Card.Suit.Diamond.ordinal()][CARD_IMAGE_JACK] = ImageIO.read(getClass().getResourceAsStream("/img/diamondjack.png"));
+			cardImages[Card.Suit.Diamond.ordinal()][CARD_IMAGE_QUEEN] = ImageIO.read(getClass().getResourceAsStream("/img/diamondqueen.png"));
+			cardImages[Card.Suit.Diamond.ordinal()][CARD_IMAGE_KING] = ImageIO.read(getClass().getResourceAsStream("/img/diamondking.png"));
+			
+			cardImages[Card.Suit.Spade.ordinal()][CARD_IMAGE_JACK] = ImageIO.read(getClass().getResourceAsStream("/img/spadejack.png"));
+			cardImages[Card.Suit.Spade.ordinal()][CARD_IMAGE_QUEEN] = ImageIO.read(getClass().getResourceAsStream("/img/spadequeen.png"));
+			cardImages[Card.Suit.Spade.ordinal()][CARD_IMAGE_KING] = ImageIO.read(getClass().getResourceAsStream("/img/spadeking.png"));
+			
+			cardImages[Card.Suit.Heart.ordinal()][CARD_IMAGE_JACK] = ImageIO.read(getClass().getResourceAsStream("/img/heartjack.png"));
+			cardImages[Card.Suit.Heart.ordinal()][CARD_IMAGE_QUEEN] =ImageIO.read(getClass().getResourceAsStream("/img/heartqueen.png"));
+			cardImages[Card.Suit.Heart.ordinal()][CARD_IMAGE_KING] = ImageIO.read(getClass().getResourceAsStream("/img/heartking.png"));
 
+			
+		} catch (Exception e) { ; }
 		
 		BufferedImage bf = new BufferedImage(2, 2, BufferedImage.TYPE_INT_BGR);
 		bf.setRGB(0, 0, 0x0000FF);
@@ -611,10 +648,10 @@ public class GUI extends JPanel {
 				if (game.isWon()) {
 					return;
 				}
-				
+												
 				recentMouseX = e.getX();
 				recentMouseY = e.getY();
-				
+								
 				CardClickInfo clickInfo = detectMousePosition(recentMouseX, recentMouseY);
 				
 				if (clickInfo.tableau == Solitaire.DRAW_PILE_BASE) {
@@ -666,6 +703,108 @@ public class GUI extends JPanel {
 		cumulativeBtn.setEnabled(game.options.scoring == Solitaire.ScoringMode.Vegas);
 	}
 	
+	public void createOptionsDialog(JFrame frame) {
+		final JDialog dialog = new JDialog(frame, "Options", Dialog.ModalityType.DOCUMENT_MODAL);
+		dialog.setBounds(150, 150, 250, 200);
+		dialog.setResizable(false);
+		
+		ActionListener escListener = new ActionListener() {
+	        @Override
+	        public void actionPerformed(ActionEvent e) {
+	            dialog.setVisible(false);
+	        }
+	    };
+
+	    dialog.getRootPane().registerKeyboardAction(escListener,
+	            KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
+	            JComponent.WHEN_IN_FOCUSED_WINDOW);
+	    
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+		dialog.add(panel);
+		
+		JPanel drawPanel = new JPanel();
+		drawPanel.setBorder(new TitledBorder("Draw"));
+		drawPanel.setLayout(new BoxLayout(drawPanel, BoxLayout.Y_AXIS));
+		ButtonGroup drawButtonGroup = new ButtonGroup();
+		JRadioButton draw1Btn = new JRadioButton("Draw 1");
+		JRadioButton draw3Btn = new JRadioButton("Draw 3");
+		drawButtonGroup.add(draw1Btn);
+		drawButtonGroup.add(draw3Btn);
+		drawPanel.add(draw1Btn);
+		drawPanel.add(draw3Btn);
+		
+		JPanel scoringPanel = new JPanel();
+		scoringPanel.setBorder(new TitledBorder("Scoring"));
+		scoringPanel.setLayout(new BoxLayout(scoringPanel, BoxLayout.Y_AXIS));
+		ButtonGroup scoringButtonGroup = new ButtonGroup();
+		JRadioButton standardScoringBtn = new JRadioButton("Standard");
+		JRadioButton vegasScoringBtn = new JRadioButton("Vegas");
+		JRadioButton noScoringBtn = new JRadioButton("None");
+		scoringButtonGroup.add(standardScoringBtn);
+		scoringButtonGroup.add(vegasScoringBtn);
+		scoringButtonGroup.add(noScoringBtn);
+		scoringPanel.add(standardScoringBtn);
+		scoringPanel.add(vegasScoringBtn);
+		scoringPanel.add(noScoringBtn);
+		
+		JPanel sidewaysPanel = new JPanel();
+		sidewaysPanel.setLayout(new BoxLayout(sidewaysPanel, BoxLayout.X_AXIS));
+		sidewaysPanel.add(drawPanel);
+		sidewaysPanel.add(scoringPanel);
+		
+		panel.add(sidewaysPanel);
+		
+	    JButton confirmBtn = new JButton("   OK   ");
+	    dialog.getRootPane().setDefaultButton(confirmBtn);
+	    confirmBtn.addActionListener(new ActionListener() {
+	    	@Override
+	    	public void actionPerformed(ActionEvent e) {
+	    		Solitaire.ScoringMode scoringMode = Solitaire.ScoringMode.Standard;
+	    		if (standardScoringBtn.isSelected()) scoringMode = Solitaire.ScoringMode.Standard;
+	    		else if (vegasScoringBtn.isSelected()) scoringMode = Solitaire.ScoringMode.Vegas;
+	    		else if (noScoringBtn.isSelected()) scoringMode = Solitaire.ScoringMode.None;
+	    		else assert false;
+	    		
+	    		boolean draw3 = draw3Btn.isSelected();
+	    		
+	    		if (draw3 != game.options.draw3 || scoringMode != game.options.scoring) {
+	    			GameOptions opt = game.options;
+					opt.scoring = scoringMode;
+					opt.draw3 = draw3;
+					start(opt);
+	    		}
+	    		
+	    		
+	    	}
+	    });
+
+	    JButton cancelBtn = new JButton("Cancel");
+	    cancelBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				dialog.setVisible(false);
+			}
+	    });
+
+	    JPanel confirmCancelPanel = new JPanel();
+		confirmCancelPanel.setLayout(new BoxLayout(confirmCancelPanel, BoxLayout.X_AXIS));
+		confirmCancelPanel.add(confirmBtn);
+		confirmCancelPanel.add(cancelBtn);
+		panel.add(confirmCancelPanel);
+	    
+	    if (game.options.draw3) {
+	    	draw3Btn.setSelected(true);
+	    } else {
+	    	draw1Btn.setSelected(true);
+	    }
+	    
+	    if (game.options.scoring == Solitaire.ScoringMode.Standard) standardScoringBtn.setSelected(true);
+	    else if (game.options.scoring == Solitaire.ScoringMode.Vegas) vegasScoringBtn.setSelected(true);
+	    else noScoringBtn.setSelected(true);
+	    
+		dialog.setVisible(true);
+	}
 	
 	public void addMenus(JFrame frame) {
 		JMenuBar menu = new JMenuBar();
@@ -700,6 +839,15 @@ public class GUI extends JPanel {
 			}
 		});
 		gameMenu.add(undoBtn);
+		
+		JMenuItem optBtn = new JMenuItem("Options...");
+		optBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				createOptionsDialog(frame);
+			}
+		});
+		//gameMenu.add(optBtn);
 		
 		JMenuItem deal1Btn = new JMenuItem("Play draw 1");
 		deal1Btn.addActionListener(new ActionListener() {
@@ -796,8 +944,7 @@ public class GUI extends JPanel {
 		gameMenu.add(new JSeparator());
 		
 		
-		
-		int presetSeeds[] = { 0x567C0882, 0x00000013 };
+		int presetSeeds[] = { 0x567C0882, 0xCCC0A516, 0x9811B537, 0xE864D2BA, 0x66B4C3F5, 0xB178FAD4, 0x74847F14 };
 		
 		JMenu presetMenu = new JMenu("Preset games");
 		gameMenu.add(presetMenu);
@@ -857,14 +1004,24 @@ public class GUI extends JPanel {
 		aboutBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				final ImageIcon icon = new ImageIcon("C:/Users/Alex/Desktop/icon.png");
+		        JOptionPane.showMessageDialog(null, "Solitiare\nVersion 1.3\n\nCopyright Alex Boxall 2021-2022\nBSD 3-clause license", "About", JOptionPane.INFORMATION_MESSAGE, icon);
 			}
 		});
 		helpMenu.add(aboutBtn);
 
+		addComponentListener(new ComponentAdapter() {
+		    public void componentResized(ComponentEvent componentEvent) {
+		    	recomputeDistances(getBounds().width, getBounds().height);
+		    	repaint();
+		    }
+		});
+		
 		updateMenubar();
 	}
 	
-	public static void main(String[] args) {
+	
+	public static void createWindow() {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e1) {
@@ -875,7 +1032,7 @@ public class GUI extends JPanel {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		try {
-			ImageIcon icon = (ImageIcon) FileSystemView.getFileSystemView().getSystemIcon(new File("solitaire.exe"));	//new ImageIcon("C:/Users/Alex/source/repos/SolitaireExe/icon.png");
+			ImageIcon icon = (ImageIcon) FileSystemView.getFileSystemView().getSystemIcon(new File("solitaire.exe"));
 			frame.setIconImage(icon.getImage());
 		} catch (Exception e) { ; }
 		
@@ -885,5 +1042,9 @@ public class GUI extends JPanel {
 		frame.setContentPane(gui);
 		frame.pack();
 		frame.setVisible(true);
+	}
+	
+	public static void main(String[] args) {
+		createWindow();
 	}
 }
