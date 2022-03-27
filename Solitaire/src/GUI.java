@@ -204,7 +204,7 @@ public class GUI extends JPanel {
 				g.fillPolygon(new Polygon(xpoly2, ypoly2, xpoly2.length));
 				
 				g.setFont(new Font("Courier New", Font.BOLD, 8));
-				g.drawString("N.INGLIS", x + CARD_WIDTH / 2 - 18, y + CARD_WIDTH / 2 + 62);
+				g.drawString("SOLITAIRE", x + CARD_WIDTH / 2 - 20, y + CARD_WIDTH / 2 + 62);
 
 			} else {
 				drawSymbol(g, x + CARD_WIDTH / 2, y + CARD_HEIGHT / 2, false, card.suit);
